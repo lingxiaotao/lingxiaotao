@@ -26,8 +26,18 @@ jobs:
         run: |
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           echo "Android SDK: $SDK"
+          echo "--- build-tools ---"
+          ls "$SDK/build-tools"
+          echo "--- platforms ---"
+          ls "$SDK/platforms"
           BT_VER=$(ls "$SDK/build-tools" | sort -V | tail -1)
-          PLAT_VER=$(ls "$SDK/platforms" | grep -o 'android-[0-9]*' | sort -V | tail -1)
+          PLAT_VER=$(for d in "$SDK"/platforms/*; do
+            if [ -f "$d/android.jar" ]; then basename "$d"; fi
+          done | sort -V | tail -1)
+          if [ -z "$PLAT_VER" ]; then
+            echo "No platform with android.jar found" >&2
+            exit 1
+          fi
           export BT="$SDK/build-tools/$BT_VER"
           export PLATFORM="$SDK/platforms/$PLAT_VER"
           echo "BT=$BT"
