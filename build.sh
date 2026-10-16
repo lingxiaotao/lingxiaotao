@@ -25,9 +25,10 @@ fi
 mkdir -p "$OUT"
 cd "$OUT"
 
-# 1. Signing keystore (debug)
-if [ ! -f my.keystore ]; then
-  keytool -genkeypair -keystore my.keystore -alias mykey -keyalg RSA -keysize 2048 \
+# 1. Signing keystore
+KEYSTORE="$ROOT/signing/my.keystore"
+if [ ! -f "$KEYSTORE" ]; then
+  keytool -genkeypair -keystore "$KEYSTORE" -alias mykey -keyalg RSA -keysize 2048 \
     -validity 10000 -storepass android -keypass android \
     -dname "CN=QRApp, O=Example, C=CN"
 fi
@@ -57,7 +58,7 @@ mkdir -p dexout
 cp base.apk unsigned.apk
 (cd dexout && zip -q "$OUT/unsigned.apk" classes.dex)
 "$BT/zipalign" -f 4 unsigned.apk aligned.apk
-"$BT/apksigner" sign --ks my.keystore --ks-pass pass:android --key-pass pass:android \
+"$BT/apksigner" sign --ks "$KEYSTORE" --ks-pass pass:android --key-pass pass:android \
   --ks-key-alias mykey --min-sdk-version 21 \
   --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
   --out "$OUT/$APK_NAME" aligned.apk

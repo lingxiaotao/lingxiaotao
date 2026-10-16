@@ -1,5 +1,2 @@
 # Build intermediates
 /build/
-
-# Keystore (regenerate with build.sh if missing)
-*.keystore
