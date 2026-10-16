@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="设备号"
+            android:text="设备号（一般为设备号后6位）"
             android:textStyle="bold" />
 
         <EditText
@@ -48,7 +48,7 @@
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
                 android:textSize="12sp"
-                android:text="实时" />
+                android:text="自定义" />
         </LinearLayout>
 
         <EditText
@@ -83,7 +83,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="加密内容："
+            android:text="授权码："
             android:textStyle="bold" />
 
         <TextView

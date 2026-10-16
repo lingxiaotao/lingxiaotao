@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
     }
 
     private void applyMode() {
-        btnMode.setText(liveMode ? "实时" : "自定义");
+        btnMode.setText(liveMode ? "自定义" : "实时");
         etTimestamp.setFocusable(!liveMode);
         etTimestamp.setFocusableInTouchMode(!liveMode);
         etTimestamp.setCursorVisible(!liveMode);
