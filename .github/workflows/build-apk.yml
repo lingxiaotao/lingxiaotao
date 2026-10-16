@@ -1,0 +1,47 @@
+name: Build APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          echo "Android SDK: $SDK"
+          BT_VER=$(ls "$SDK/build-tools" | sort -V | tail -1)
+          PLAT_VER=$(ls "$SDK/platforms" | grep -o 'android-[0-9]*' | sort -V | tail -1)
+          export BT="$SDK/build-tools/$BT_VER"
+          export PLATFORM="$SDK/platforms/$PLAT_VER"
+          echo "BT=$BT"
+          echo "PLATFORM=$PLATFORM"
+          bash build.sh
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qrencrypt-apk
+          path: qrencrypt.apk
+
+      - name: Attach APK to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: qrencrypt.apk
