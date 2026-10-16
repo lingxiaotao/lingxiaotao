@@ -13,41 +13,42 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="第一段 (如 05ac4a)"
+            android:text="设备号"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etFirst"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="请输入第一段"
+            android:hint="请输入设备号"
             android:inputType="text" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="第二段 (当前时间戳，自动)"
+            android:text="开始时间"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etTimestamp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:enabled="false" />
+            android:hint="开始时间（实时读秒，可修改）"
+            android:inputType="text" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="第三段 (默认值)"
+            android:text="到期时间"
             android:textStyle="bold" />
 
         <EditText
             android:id="@+id/etThird"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:hint="请输入到期时间"
             android:inputType="number" />
 
         <Button

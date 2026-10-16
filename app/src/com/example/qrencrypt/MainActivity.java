@@ -4,6 +4,10 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
@@ -22,7 +26,10 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.crypto.Cipher;
@@ -34,11 +41,30 @@ public class MainActivity extends Activity {
     private static final String publicKeyStr = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIj0O11NWyCHIuMjuZK+NPqbbOQQMnO3uxP8kVbpWL1jtsWusPYLTUvv1ZoO4jekazCJ9ulGdVqYA8wzhXaWPqsCAwEAAQ==";
     private static final String privateKeyStr = "MIIBUwIBADANBgkqhkiG9w0BAQEFAASCAT0wggE5AgEAAkEAiPQ7XU1bIIci4yO5kr40+pts5BAyc7e7E/yRVulYvWO2xa6w9gtNS+/Vmg7iN6RrMIn26UZ1WpgDzDOFdpY+qwIDAQABAkBKcS7/hTe+U5Y0DswlJnyXp/olcWRrH/hxYb0Cl+4jawlriiSaGRTWzdmgztgMccsh4jH3ZsTkQnOU4RZKkBgxAiEA7rk1VxZxtLHoglEReFVnCTK2Re52DSGLvrlwFh/VGWkCIQCS3Y6vtn8JJfE3in9YHBsFRnqPVDFe5Q0axZ7BJNIg8wIgPRjPqwNGhK2HyVqAMyEAZt1AwzMdqYytXFnPcwogmwkCIAYHNg4cTYaQmiAPfT6emLVUuT8c05HzkOAicGu5GS7lAiAPjPTiL3pK5zSZsc/N03zZtqdkkyhOsgE/D7T8c08WUg==";
 
+    private static final SimpleDateFormat TIME_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+
     private EditText etFirst;
     private EditText etTimestamp;
     private EditText etThird;
     private TextView tvEncrypted;
     private ImageView ivQr;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean updatingText = false;
+    private boolean userEdited = false;
+    private final Runnable ticker = new Runnable() {
+        @Override
+        public void run() {
+            if (!userEdited) {
+                String now = TIME_FORMAT.format(new Date());
+                updatingText = true;
+                etTimestamp.setText(now);
+                updatingText = false;
+            }
+            handler.postDelayed(this, 1000);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,8 +78,26 @@ public class MainActivity extends Activity {
         ivQr = findViewById(R.id.ivQr);
 
         etFirst.setText("05ac4a");
-        etTimestamp.setText(String.valueOf(System.currentTimeMillis()));
+        etTimestamp.setText(TIME_FORMAT.format(new Date()));
         etThird.setText(DEFAULT_THIRD);
+
+        etTimestamp.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (updatingText) {
+                    return;
+                }
+                userEdited = s.toString().trim().length() > 0;
+            }
+        });
 
         Button btn = findViewById(R.id.btnGenerate);
         btn.setOnClickListener(new View.OnClickListener() {
@@ -64,14 +108,28 @@ public class MainActivity extends Activity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        handler.post(ticker);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        handler.removeCallbacks(ticker);
+    }
+
     private void generate() {
         String first = etFirst.getText().toString().trim();
         if (first.isEmpty()) {
-            Toast.makeText(this, "请输入第一段内容", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "请输入设备号", Toast.LENGTH_SHORT).show();
             return;
         }
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        etTimestamp.setText(timestamp);
+
+        long startMillis = resolveStartMillis();
+        String timestamp = String.valueOf(startMillis);
+
         String third = etThird.getText().toString().trim();
         if (third.isEmpty()) {
             third = DEFAULT_THIRD;
@@ -95,6 +153,25 @@ public class MainActivity extends Activity {
             ivQr.setImageBitmap(null);
             Toast.makeText(this, "加密失败", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private long resolveStartMillis() {
+        if (!userEdited) {
+            return System.currentTimeMillis();
+        }
+        String text = etTimestamp.getText().toString().trim();
+        try {
+            return Long.parseLong(text);
+        } catch (NumberFormatException ignored) {
+        }
+        try {
+            Date parsed = TIME_FORMAT.parse(text);
+            if (parsed != null) {
+                return parsed.getTime();
+            }
+        } catch (Exception ignored) {
+        }
+        return System.currentTimeMillis();
     }
 
     private Bitmap encodeQr(String content, int size) {

@@ -58,7 +58,9 @@ cp base.apk unsigned.apk
 (cd dexout && zip -q "$OUT/unsigned.apk" classes.dex)
 "$BT/zipalign" -f 4 unsigned.apk aligned.apk
 "$BT/apksigner" sign --ks my.keystore --ks-pass pass:android --key-pass pass:android \
-  --ks-key-alias mykey --out "$OUT/$APK_NAME" aligned.apk
+  --ks-key-alias mykey --min-sdk-version 21 \
+  --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+  --out "$OUT/$APK_NAME" aligned.apk
 
 cp "$OUT/$APK_NAME" "$ROOT/$APK_NAME"
 
