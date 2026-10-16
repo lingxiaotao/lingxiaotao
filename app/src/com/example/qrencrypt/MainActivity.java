@@ -6,8 +6,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Base64;
 import android.view.View;
 import android.widget.Button;
@@ -36,7 +34,7 @@ import javax.crypto.Cipher;
 
 public class MainActivity extends Activity {
 
-    private static final String DEFAULT_THIRD = "4102502399000";
+    private static final long DEFAULT_THIRD_MILLIS = 4102502399000L;
 
     private static final String publicKeyStr = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIj0O11NWyCHIuMjuZK+NPqbbOQQMnO3uxP8kVbpWL1jtsWusPYLTUvv1ZoO4jekazCJ9ulGdVqYA8wzhXaWPqsCAwEAAQ==";
     private static final String privateKeyStr = "MIIBUwIBADANBgkqhkiG9w0BAQEFAASCAT0wggE5AgEAAkEAiPQ7XU1bIIci4yO5kr40+pts5BAyc7e7E/yRVulYvWO2xa6w9gtNS+/Vmg7iN6RrMIn26UZ1WpgDzDOFdpY+qwIDAQABAkBKcS7/hTe+U5Y0DswlJnyXp/olcWRrH/hxYb0Cl+4jawlriiSaGRTWzdmgztgMccsh4jH3ZsTkQnOU4RZKkBgxAiEA7rk1VxZxtLHoglEReFVnCTK2Re52DSGLvrlwFh/VGWkCIQCS3Y6vtn8JJfE3in9YHBsFRnqPVDFe5Q0axZ7BJNIg8wIgPRjPqwNGhK2HyVqAMyEAZt1AwzMdqYytXFnPcwogmwkCIAYHNg4cTYaQmiAPfT6emLVUuT8c05HzkOAicGu5GS7lAiAPjPTiL3pK5zSZsc/N03zZtqdkkyhOsgE/D7T8c08WUg==";
@@ -49,18 +47,16 @@ public class MainActivity extends Activity {
     private EditText etThird;
     private TextView tvEncrypted;
     private ImageView ivQr;
+    private Button btnMode;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private boolean updatingText = false;
-    private boolean userEdited = false;
+    private boolean liveMode = true;
+
     private final Runnable ticker = new Runnable() {
         @Override
         public void run() {
-            if (!userEdited) {
-                String now = TIME_FORMAT.format(new Date());
-                updatingText = true;
-                etTimestamp.setText(now);
-                updatingText = false;
+            if (liveMode) {
+                etTimestamp.setText(TIME_FORMAT.format(new Date()));
             }
             handler.postDelayed(this, 1000);
         }
@@ -76,26 +72,16 @@ public class MainActivity extends Activity {
         etThird = findViewById(R.id.etThird);
         tvEncrypted = findViewById(R.id.tvEncrypted);
         ivQr = findViewById(R.id.ivQr);
+        btnMode = findViewById(R.id.btnMode);
 
         etFirst.setText("05ac4a");
         etTimestamp.setText(TIME_FORMAT.format(new Date()));
-        etThird.setText(DEFAULT_THIRD);
+        etThird.setText(formatTime(DEFAULT_THIRD_MILLIS));
 
-        etTimestamp.addTextChangedListener(new TextWatcher() {
+        btnMode.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (updatingText) {
-                    return;
-                }
-                userEdited = s.toString().trim().length() > 0;
+            public void onClick(View v) {
+                setLiveMode(!liveMode);
             }
         });
 
@@ -106,6 +92,24 @@ public class MainActivity extends Activity {
                 generate();
             }
         });
+
+        applyMode();
+    }
+
+    private void setLiveMode(boolean live) {
+        liveMode = live;
+        if (live) {
+            etTimestamp.setText(TIME_FORMAT.format(new Date()));
+        }
+        applyMode();
+    }
+
+    private void applyMode() {
+        btnMode.setText(liveMode ? "实时" : "自定义");
+        etTimestamp.setFocusable(!liveMode);
+        etTimestamp.setFocusableInTouchMode(!liveMode);
+        etTimestamp.setCursorVisible(!liveMode);
+        etTimestamp.setClickable(!liveMode);
     }
 
     @Override
@@ -127,16 +131,10 @@ public class MainActivity extends Activity {
             return;
         }
 
-        long startMillis = resolveStartMillis();
-        String timestamp = String.valueOf(startMillis);
+        long startMillis = liveMode ? System.currentTimeMillis() : parseTimeToMillis(etTimestamp, System.currentTimeMillis());
+        long thirdMillis = parseTimeToMillis(etThird, DEFAULT_THIRD_MILLIS);
 
-        String third = etThird.getText().toString().trim();
-        if (third.isEmpty()) {
-            third = DEFAULT_THIRD;
-            etThird.setText(third);
-        }
-
-        String plainText = first + "," + timestamp + "," + third;
+        String plainText = first + "," + startMillis + "," + thirdMillis;
         try {
             String encrypted = encrypt(plainText, publicKeyStr);
             tvEncrypted.setText(encrypted);
@@ -155,11 +153,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    private long resolveStartMillis() {
-        if (!userEdited) {
-            return System.currentTimeMillis();
+    private long parseTimeToMillis(EditText field, long fallback) {
+        String text = field.getText().toString().trim();
+        if (text.isEmpty()) {
+            field.setText(formatTime(fallback));
+            return fallback;
         }
-        String text = etTimestamp.getText().toString().trim();
         try {
             return Long.parseLong(text);
         } catch (NumberFormatException ignored) {
@@ -171,7 +170,11 @@ public class MainActivity extends Activity {
             }
         } catch (Exception ignored) {
         }
-        return System.currentTimeMillis();
+        return fallback;
+    }
+
+    private static String formatTime(long millis) {
+        return TIME_FORMAT.format(new Date(millis));
     }
 
     private Bitmap encodeQr(String content, int size) {
