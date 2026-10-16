@@ -110,6 +110,7 @@ public class MainActivity extends Activity {
         etTimestamp.setFocusableInTouchMode(!liveMode);
         etTimestamp.setCursorVisible(!liveMode);
         etTimestamp.setClickable(!liveMode);
+        etTimestamp.setAlpha(liveMode ? 0.5f : 1.0f);
     }
 
     @Override
